@@ -1,0 +1,17 @@
+{
+  "name": "Kopfsache",
+  "short_name": "Kopfsache",
+  "description": "Lern-App für die 5. Klasse mit Belohnungsspielen",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBFCFE",
+  "theme_color": "#FBFCFE",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
