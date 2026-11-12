@@ -226,17 +226,17 @@ p.expl{font-size:14px;color:var(--muted);line-height:1.55;margin:8px 0 0}
 <title>Sternsplitter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Ein Arcade-Gehäuse im Hochformat, mittig im Fenster, Rest bleibt schwarzer Raum */
-  --void:#07061a;
+  --void:#07070d;
   --hull:#5ef2ff;
   --hostile:#ff4fa8;
   --credit:#ffc23d;
   --warn:#ff7a3d;
   --ink:#d8d4ff;
-  --display:"Press Start 2P",ui-monospace,"Courier New",monospace;
+  --display:"Share Tech Mono",ui-monospace,"Courier New",monospace;
   color-scheme:dark;
 }
 html,body{height:100%;margin:0;background:var(--void);color:var(--ink);overflow:hidden;
@@ -244,12 +244,12 @@ html,body{height:100%;margin:0;background:var(--void);color:var(--ink);overflow:
 #wrap{position:relative;height:100%;display:flex;align-items:center;justify-content:center}
 #stage{position:relative}
 canvas{display:block;background:#000;touch-action:none;outline:none;
-  box-shadow:0 0 0 1px #2a2560,0 0 48px #19134d}
-#scan{position:absolute;inset:0;pointer-events:none;
+  box-shadow:0 0 0 1px #22222e}
+#scan{display:none;position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(to bottom,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
   mix-blend-mode:multiply}
 #mute{position:absolute;right:6px;bottom:8px;font:11px/1 var(--display);color:var(--ink);
-  background:rgba(7,6,26,.7);border:1px solid #3b3480;padding:7px 8px;cursor:pointer;letter-spacing:.05em}
+  background:rgba(6,6,12,.85);border:1px solid #33334a;border-radius:6px;padding:7px 8px;cursor:pointer;letter-spacing:.05em}
 #mute:focus-visible{outline:2px solid var(--hull);outline-offset:2px}
 </style>
 </head>
@@ -264,9 +264,9 @@ canvas{display:block;background:#000;touch-action:none;outline:none;
 <script>
 (() => {
 'use strict';
-const COL = {hull:'#5ef2ff', hostile:'#ff4fa8', credit:'#ffc23d', warn:'#ff7a3d', ink:'#d8d4ff',
-             dim:'#6a63b8', violet:'#a68bff', red:'#ff3b5c', white:'#ffffff'};
-const FONT = '"Press Start 2P", ui-monospace, monospace';
+const COL = {hull:'#4aa0f0', hostile:'#e8558f', credit:'#f0a43a', warn:'#f0a43a', ink:'#e6e4f0', green:'#4ccf9a',
+             dim:'#8a88a8', violet:'#9c8cff', red:'#e8463e', white:'#ffffff'};
+const FONT = '"Share Tech Mono", ui-monospace, monospace';
 const W = 360, H = 640;
 const TOP = 34, BOTTOM = H - 40;
 // Belohnungsmodus: eingebettet in Kopfsache, ein Spiel pro Belohnung, kein Neustart
@@ -376,15 +376,15 @@ const LIMIT = 180;                            // Belohnungsspiel: höchstens 3 M
 // Tempo der Gegner: Sektor 1 und 2 langsamer, danach volle Geschwindigkeit
 // ab Sektor 3 je Sektor 8 % schneller, höchstens 2,2-fach
 const pace = () => sector === 1 ? .6 : sector === 2 ? .78 : Math.min(2.2, 1 + (sector - 3) * .08);
-let P, enemies, pb, eb, items, parts, floats, banner, time, sector, spawnT, shake, nextLife, overT, newRecord, kills, timeUp = false;
+let P, enemies, pb, eb, items, parts, floats, banner, time, sector, spawnT, shake, nextLife, overT, newRecord, kills, timeUp = false, rings = [];
 const stars = [];
 for (let i = 0; i < 90; i++) stars.push({x: Math.random() * W, y: Math.random() * H, z: 1 + (i % 3)});
 
 function reset(){
   P = {x: W / 2, y: BOTTOM - 70, inv: 2, cd: 0, lives: 3, lvl: 1, meter: 0, credits: 0, score: 0, tilt: 0, triple: 0};
-  enemies = []; pb = []; eb = []; items = []; parts = []; floats = [];
+  enemies = []; pb = []; eb = []; items = []; parts = []; floats = []; rings = [];
   time = 0; sector = 1; spawnT = 1.2; shake = 0; nextLife = 25000; kills = 0; newRecord = false; timeUp = false; sinceTriple = 0; tripleCool = 20;
-  banner = {text: 'SEKTOR 1', sub: REWARD ? '3 MINUTEN, LOS!' : 'CREDITS SAMMELN!', t: 2.2};
+  banner = {text: 'WELLE 1', sub: REWARD ? '3 MINUTEN, LOS!' : 'MÜNZEN SAMMELN!', t: 2.2};
 }
 reset();
 
@@ -541,6 +541,7 @@ function updateEnemy(e, dt){
 
 function kill(e){
   kills++;
+  rings.push({x: e.x, y: e.y, r: e.r, born: time});
   addScore(e.pts);
   burst(e.x, e.y, e.color, e.r * 1.6 | 0, 170, .7);
   burst(e.x, e.y, COL.white, 6, 90, .35);
@@ -628,7 +629,7 @@ function update(dt){
   time += dt;
   if (REWARD && time >= LIMIT){ endGame(true); return; }
   const ns = 1 + (time / 40 | 0);
-  if (ns !== sector){ sector = ns; banner = {text: 'SEKTOR ' + sector, sub: 'MEHR GEGNER', t: 2}; SFX.sector(); addScore(500 * (sector - 1)); }
+  if (ns !== sector){ sector = ns; banner = {text: 'WELLE ' + sector, sub: 'MEHR GEGNER', t: 2}; SFX.sector(); addScore(500 * (sector - 1)); }
   if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
 
   // Spieler
@@ -689,169 +690,255 @@ function update(dt){
   }
 }
 
-/* ---------- Zeichnen ---------- */
+/* ---------- Zeichnen ----------
+   Flacher Comic-Look: gefüllte Figuren ohne Leuchten, dunkler Raum mit Nebel und Ringplanet. */
+const PAL = {
+  bg: '#07070d', bar: '#06060c', line: '#22222e', label: '#b0aec4', value: '#ece9f2',
+  shipBody: '#ece8dc', shipWing: '#2d6fd0', shipTip: '#4aa0f0', shipStripe: '#e0453a', cockpit: '#0d1b3d', glass: '#4a88d8',
+  flame: '#f39a1e', flameCore: '#ffd166',
+  fighter: '#e8558f', fighterWing: '#c94a7c', fighterCore: '#ffd1e3',
+  hunter: '#e8463e', hunterWing: '#b8325a',
+  alien: '#5cc9a0', alienWing: '#2a8e6a', eye: '#10302a',
+  hull: '#c8761a', hullRim: '#7a4410', hullDark: '#5a2e0a', lamp: '#f0a43a', redEye: '#e8463e',
+  rock: '#3b3552', rockRim: '#2a2540', rockHi: '#514a70',
+  coin: '#ffc85a', coinRim: '#d9962a', pill: '#9c8cff', ebullet: '#f08a9a', ebulletCore: '#ffd0d6',
+  life: '#8f8f99'
+};
 function poly(pts, x, y, rot, color, fill, lw){
   ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot);
   ctx.beginPath();
   pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
   ctx.closePath();
   if (fill){ ctx.fillStyle = fill; ctx.fill(); }
-  ctx.strokeStyle = color; ctx.lineWidth = lw || 1.6; ctx.lineJoin = 'round';
-  ctx.shadowColor = color; ctx.shadowBlur = 8; ctx.stroke();
+  if (color){ ctx.strokeStyle = color; ctx.lineWidth = lw || 1.6; ctx.lineJoin = 'round'; ctx.stroke(); }
   ctx.restore();
 }
-function text(s, x, y, size, color, align, glow){
-  ctx.font = size + 'px ' + FONT; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-  if (glow){ ctx.shadowColor = color; ctx.shadowBlur = glow; }
-  ctx.fillText(s, x, y);
-  ctx.shadowBlur = 0;
+function shape(pts, fill){ ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); }
+function text(s, x, y, size, color, align){
+  ctx.font = Math.round(size * 1.55) + 'px ' + FONT; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0.5px';
+  ctx.fillStyle = color; ctx.fillText(s, x, y);
 }
 
-const SHIP = [[0,-16],[4,-6],[6,-2],[13,8],[6,7],[3,11],[-3,11],[-6,7],[-13,8],[-6,-2],[-4,-6]];
+/* Hintergrund einmal vorzeichnen: Nebelflecken und Ringplanet */
+let bgCache = null;
+function background(){
+  if (bgCache) return bgCache;
+  const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
+  const g = c.getContext('2d'); g.scale(2, 2);
+  g.fillStyle = PAL.bg; g.fillRect(0, 0, W, H);
+  const blob = (x, y, rx, ry, rot, col) => { g.save(); g.translate(x, y); g.rotate(rot); g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.restore(); };
+  blob(70, 230, 185, 85, -.5, 'rgba(34,31,96,.55)');
+  blob(290, 450, 170, 75, .5, 'rgba(64,16,38,.45)');
+  // Ringplanet unten rechts
+  const px = 338, py = 520, pr = 56;
+  g.save(); g.translate(px, py); g.rotate(-.18);
+  g.strokeStyle = '#8f86e0'; g.lineWidth = 1.6;
+  g.beginPath(); g.ellipse(0, 0, 96, 13, 0, Math.PI, Math.PI * 2); g.stroke();
+  g.restore();
+  g.save(); g.beginPath(); g.arc(px, py, pr, 0, Math.PI * 2); g.clip();
+  g.fillStyle = '#3b35a0'; g.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+  g.fillStyle = '#4a44b8'; for (const dy of [-26, -10, 6, 22]) g.fillRect(px - pr, py + dy, 22, 6);
+  g.fillStyle = '#29256f'; g.beginPath(); g.arc(px + 16, py, pr, 0, Math.PI * 2); g.fill();
+  g.restore();
+  g.save(); g.translate(px, py); g.rotate(-.18);
+  g.strokeStyle = '#8f86e0'; g.lineWidth = 1.6;
+  g.beginPath(); g.ellipse(0, 0, 96, 13, 0, 0, Math.PI); g.stroke();
+  g.restore();
+  return (bgCache = c);
+}
+
 const DART = [[0,12],[9,-9],[0,-3],[-9,-9]];
-const SAUCER = [[-17,0],[-9,-7],[9,-7],[17,0],[9,7],[-9,7]];
-const HUNTER = [[0,12],[5,3],[12,0],[5,-3],[0,-12],[-5,-3],[-12,0],[-5,3]];
 const STAR = []; for (let i = 0; i < 16; i++){ const a = i / 16 * Math.PI * 2, r = i % 2 ? 12 : 22; STAR.push([Math.cos(a) * r, Math.sin(a) * r]); }
 
 function drawShip(x, y, tilt, t){
   const sx = 1 - Math.abs(tilt) * .25;
-  ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
-  // Triebwerk
-  const fl = 8 + Math.sin(t * 40) * 3 + Math.random() * 3;
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.beginPath(); ctx.moveTo(-3, 11); ctx.lineTo(0, 11 + fl); ctx.lineTo(3, 11); ctx.closePath();
-  ctx.fillStyle = COL.credit; ctx.shadowColor = COL.warn; ctx.shadowBlur = 10; ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.translate(x, y); ctx.scale(sx * 1.25, 1.25);   // größer gezeichnet als die Trefferzone – verzeiht knappe Ausweichmanöver
+  // zwei Flammen
+  for (const fx of [-3, 3]){
+    const fl = 6 + Math.sin(t * 38 + fx) * 2 + Math.random() * 2;
+    shape([[fx - 2.4, 12], [fx, 12 + fl], [fx + 2.4, 12]], PAL.flame);
+    shape([[fx - 1.1, 12], [fx, 12 + fl * .6], [fx + 1.1, 12]], PAL.flameCore);
+  }
+  // Flügel
+  shape([[-5, -1], [-15, 8], [-15, 12], [-5, 9]], PAL.shipWing);
+  shape([[5, -1], [15, 8], [15, 12], [5, 9]], PAL.shipWing);
+  ctx.fillStyle = PAL.shipTip; ctx.fillRect(-16.5, 5, 2.2, 8); ctx.fillRect(14.3, 5, 2.2, 8);
+  // Rumpf
+  ctx.beginPath(); ctx.moveTo(0, -18); ctx.quadraticCurveTo(5.5, -10, 5.5, -2); ctx.lineTo(5.5, 12); ctx.lineTo(-5.5, 12); ctx.lineTo(-5.5, -2); ctx.quadraticCurveTo(-5.5, -10, 0, -18); ctx.closePath();
+  ctx.fillStyle = PAL.shipBody; ctx.fill();
+  ctx.fillStyle = PAL.shipStripe; ctx.fillRect(-5.5, 5, 11, 2.2);
+  ctx.fillStyle = '#3a3a48'; ctx.fillRect(-5.5, 11, 11, 2.2);
+  // Cockpit
+  ctx.beginPath(); ctx.ellipse(0, -5.5, 2.8, 4.8, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.cockpit; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-.8, -6.8, .8, 1.9, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.glass; ctx.fill();
   ctx.restore();
-  ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
-  poly(SHIP, 0, 0, 0, COL.hull, 'rgba(10,40,60,.85)', 1.8);
-  ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(2.5, -2); ctx.lineTo(-2.5, -2); ctx.closePath();
-  ctx.fillStyle = COL.white; ctx.fill();
+}
+
+// Kampfflieger: Flügel nach oben geschwungen, Spitze zeigt zum Spieler
+function drawFighter(x, y, rot, body, wing, core, s){
+  ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot); if (s) ctx.scale(s, s);
+  shape([[-15, -9], [-2, -2], [-4, 3], [-10, 1]], wing);
+  shape([[15, -9], [2, -2], [4, 3], [10, 1]], wing);
+  shape([[0, -7], [4.5, -1], [0, 12], [-4.5, -1]], body);
+  ctx.beginPath(); ctx.arc(0, -1, 2.6, 0, Math.PI * 2); ctx.fillStyle = core; ctx.fill();
+  ctx.restore();
+}
+function drawAlien(x, y, t, c, s){
+  ctx.save(); ctx.translate(x, y); if (s) ctx.scale(s, s);
+  const flap = Math.sin(t * 7) * .15;
+  for (const d of [-1, 1]){
+    ctx.save(); ctx.scale(d, 1); ctx.rotate(flap);
+    ctx.beginPath(); ctx.ellipse(-10, 1, 4.2, 8.5, -.25, 0, Math.PI * 2); ctx.fillStyle = c.wing; ctx.fill();
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.ellipse(0, 0, 8, 10, 0, 0, Math.PI * 2); ctx.fillStyle = c.body; ctx.fill();
+  for (const ex of [-3.2, 3.2]){
+    ctx.beginPath(); ctx.arc(ex, -2.5, 2.1, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ex, -2.2, 1, 0, Math.PI * 2); ctx.fillStyle = c.eye; ctx.fill();
+  }
+  ctx.restore();
+}
+function drawMother(x, y, t, hpFrac, white, s){
+  ctx.save(); ctx.translate(x, y); if (s) ctx.scale(s, s);
+  const rim = white ? '#ffffff' : PAL.hullRim, hull = white ? '#ffffff' : PAL.hull;
+  ctx.fillStyle = PAL.hullDark; ctx.fillRect(-23, 7, 6, 6); ctx.fillRect(17, 7, 6, 6);
+  ctx.beginPath(); ctx.arc(-20, 15, 2.2, 0, Math.PI * 2); ctx.arc(20, 15, 2.2, 0, Math.PI * 2); ctx.fillStyle = PAL.lamp; ctx.fill();
+  shape([[-36, 0], [-25, -12], [25, -12], [36, 0], [25, 10], [-25, 10]], rim);
+  shape([[-29, 0], [-21, -8], [21, -8], [29, 0], [21, 7], [-21, 7]], hull);
+  ctx.fillStyle = PAL.lamp; for (const lx of [-19, -12, 8, 15]) ctx.fillRect(lx, -5.5, 4.5, 1.8);
+  ctx.beginPath(); ctx.ellipse(0, 0, 9.5, 5.5, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.hullDark; ctx.fill();
+  const blink = .75 + Math.sin(t * 5) * .25;
+  ctx.beginPath(); ctx.ellipse(0, 0, 5.5 * blink + 1, 2.8, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.redEye; ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(-1.6, -1.2, 1.6, 1.2);
+  if (hpFrac != null){
+    const w = 52; ctx.fillStyle = '#2a2a35'; ctx.fillRect(-w / 2, -21, w, 3.2);
+    ctx.fillStyle = PAL.redEye; ctx.fillRect(-w / 2, -21, w * hpFrac, 3.2);
+  }
   ctx.restore();
 }
 
 function drawEnemy(e){
-  const c = e.hit > 0 ? COL.white : e.color;
+  const white = e.hit > 0;
   switch (e.type){
-    case 'brocken': poly(e.shape, e.x, e.y, e.rot, c, 'rgba(30,20,60,.8)'); break;
-    case 'pfeil':   poly(DART, e.x, e.y, e.rot, c, 'rgba(60,10,40,.8)'); break;
-    case 'jaeger':  poly(HUNTER, e.x, e.y, e.rot, c, 'rgba(60,10,20,.8)');
-                    poly([[0,4],[4,0],[0,-4],[-4,0]], e.x, e.y, -e.rot, c); break;
-    case 'waechter': {
-      poly(SAUCER, e.x, e.y, 0, c, 'rgba(60,25,10,.85)');
-      poly([[-6,-7],[-4,-12],[4,-12],[6,-7]], e.x, e.y, 0, c);
-      const a = Math.atan2(P.y - e.y, P.x - e.x);
-      ctx.save(); ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.shadowColor = c; ctx.shadowBlur = 6;
-      ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(a) * 13, e.y + Math.sin(a) * 13); ctx.stroke(); ctx.restore();
-      break; }
-    case 'faecher': {
-      poly(STAR, e.x, e.y, e.rot, c, 'rgba(50,10,45,.85)');
-      ctx.save(); ctx.strokeStyle = e.hit > 0 ? COL.white : COL.violet; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(e.x, e.y, 7 + Math.sin(e.t * 6), 0, Math.PI * 2); ctx.stroke();
-      // Lebensbalken
-      const w = 34, f = e.hp / e.maxhp;
-      ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.fillRect(e.x - w / 2, e.y - 32, w, 3);
-      ctx.fillStyle = COL.hostile; ctx.fillRect(e.x - w / 2, e.y - 32, w * f, 3);
-      ctx.restore();
-      break; }
+    case 'brocken':
+      poly(e.shape, e.x, e.y, e.rot, white ? null : PAL.rockRim, white ? '#ffffff' : PAL.rock, 1.6);
+      if (!white){ ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rot); ctx.beginPath(); ctx.arc(-e.r * .3, -e.r * .25, e.r * .28, 0, Math.PI * 2); ctx.fillStyle = PAL.rockHi; ctx.fill(); ctx.restore(); }
+      break;
+    case 'pfeil':
+      drawFighter(e.x, e.y, e.rot * .3, white ? '#fff' : PAL.fighter, white ? '#fff' : PAL.fighterWing, white ? '#fff' : PAL.fighterCore, 1.05);
+      break;
+    case 'jaeger':
+      drawFighter(e.x, e.y, clamp(e.vx / 300, -.5, .5), white ? '#fff' : PAL.hunter, white ? '#fff' : PAL.hunterWing, white ? '#fff' : PAL.fighterCore, 1.1);
+      break;
+    case 'waechter':
+      drawAlien(e.x, e.y, e.t, white ? {wing: '#fff', body: '#fff', eye: PAL.eye} : {wing: PAL.alienWing, body: PAL.alien, eye: PAL.eye}, 1.25);
+      break;
+    case 'faecher':
+      drawMother(e.x, e.y, e.t, e.hp / e.maxhp, white, 1.2);
+      break;
   }
 }
 
 function drawCredit(x, y, spin, r){
-  const sx = Math.abs(Math.cos(spin));
-  ctx.save(); ctx.translate(x, y); ctx.scale(Math.max(.2, sx), 1);
-  const hex = []; for (let i = 0; i < 6; i++){ const a = i / 6 * Math.PI * 2 + Math.PI / 6; hex.push([Math.cos(a) * r, Math.sin(a) * r]); }
-  poly(hex, 0, 0, 0, COL.credit, 'rgba(70,45,0,.85)', 1.5);
-  if (sx > .45) text('C', 0, 1, r > 7 ? 8 : 6, COL.credit);
+  const sx = Math.max(.25, Math.abs(Math.cos(spin)));
+  ctx.save(); ctx.translate(x, y);
+  ctx.beginPath(); ctx.ellipse(0, 0, r * sx, r, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.coinRim; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-r * .1 * sx, -r * .08, r * .78 * sx, r * .78, 0, 0, Math.PI * 2); ctx.fillStyle = PAL.coin; ctx.fill();
   ctx.restore();
 }
 
 function drawCapsule(x, y, t){
-  const pulse = 1 + Math.sin(t * 8) * .08;
+  const pulse = 1 + Math.sin(t * 6) * .06;
   ctx.save(); ctx.translate(x, y); ctx.scale(pulse, pulse);
-  poly([[-13,-7],[13,-7],[16,0],[13,7],[-13,7],[-16,0]], 0, 0, 0, COL.hull, 'rgba(5,45,60,.9)', 1.8);
+  ctx.beginPath(); ctx.roundRect(-17, -8.5, 34, 17, 8.5); ctx.fillStyle = 'rgba(10,10,22,.85)'; ctx.fill();
+  ctx.strokeStyle = PAL.pill; ctx.lineWidth = 2; ctx.stroke();
   ctx.restore();
-  text('3X', x, y + 1, 8, COL.white);
+  text('+1', x, y + .5, 7, '#ddd6ff');
 }
 
+function drawLife(x, y){ shape([[x, y - 7], [x + 8, y + 6], [x - 8, y + 6]], PAL.life); }
+
 function drawHUD(){
-  ctx.fillStyle = 'rgba(7,6,26,.82)';
-  ctx.fillRect(0, 0, W, TOP); ctx.fillRect(0, BOTTOM, W, H - BOTTOM);
-  ctx.fillStyle = '#2a2560'; ctx.fillRect(0, TOP, W, 1); ctx.fillRect(0, BOTTOM, W, 1);
-  text('PUNKTE', 8, 11, 6, COL.dim, 'left');
-  text(String(P.score).padStart(7, '0'), 8, 24, 8, COL.ink, 'left');
-  text('REKORD', W / 2, 11, 6, COL.dim);
-  text(String(Math.max(hi, P.score)).padStart(7, '0'), W / 2, 24, 8, COL.credit);
-  text('S' + sector, W - 8, 11, 6, COL.dim, 'right');
+  ctx.fillStyle = PAL.bar; ctx.fillRect(0, 0, W, TOP); ctx.fillRect(0, BOTTOM, W, H - BOTTOM);
+  ctx.fillStyle = PAL.line; ctx.fillRect(0, TOP, W, 1); ctx.fillRect(0, BOTTOM, W, 1);
+  text('PUNKTE', 10, 10, 5.5, PAL.label, 'left');
+  text(String(P.score).padStart(6, '0'), 10, 24, 8, PAL.value, 'left');
+  text('REKORD', W / 2 - 22, 10, 5.5, PAL.label, 'left');
+  text(String(Math.max(hi, P.score)).padStart(6, '0'), W / 2 - 22, 24, 8, COL.credit, 'left');
+  text('WELLE', W - 10, 10, 5.5, PAL.label, 'right');
+  text(String(sector), W - 14, 24, 8, COL.green, 'right');
   if (REWARD){ const left = Math.max(0, Math.ceil(LIMIT - time)), warn = left <= 15 && ((time * 2) | 0) % 2 === 0;
-    text((left / 60 | 0) + ':' + String(left % 60).padStart(2, '0'), 8, TOP + 16, 9, warn ? COL.white : COL.credit, 'left'); }
+    text((left / 60 | 0) + ':' + String(left % 60).padStart(2, '0'), 10, TOP + 16, 8, warn ? '#ffffff' : PAL.coin, 'left'); }
   if (P.triple > 0){
     const blink = P.triple < 4 && ((P.triple * 6) | 0) % 2 === 0;
-    const bw = 120, bx = (W - bw) / 2, by = TOP + 8;
-    ctx.fillStyle = 'rgba(7,6,26,.7)'; ctx.fillRect(bx - 4, by - 5, bw + 8, 22);
-    text('SALVE +1  ' + Math.ceil(P.triple) + 'S', W / 2, by + 2, 7, blink ? COL.white : COL.hull);
-    ctx.fillStyle = '#123b48'; ctx.fillRect(bx, by + 10, bw, 3);
-    ctx.fillStyle = COL.hull; ctx.fillRect(bx, by + 10, bw * P.triple / TRIPLE_TIME, 3);
+    const bw = 116, bx = (W - bw) / 2, by = TOP + 8;
+    ctx.beginPath(); ctx.roundRect(bx - 6, by - 6, bw + 12, 24, 12); ctx.fillStyle = 'rgba(10,10,22,.85)'; ctx.fill();
+    ctx.strokeStyle = PAL.pill; ctx.lineWidth = 1.5; ctx.stroke();
+    text('SALVE +1  ' + Math.ceil(P.triple) + 'S', W / 2, by + 2, 6.5, blink ? '#ffffff' : '#ddd6ff');
+    ctx.fillStyle = '#2a2650'; ctx.fillRect(bx, by + 10, bw, 2.5);
+    ctx.fillStyle = PAL.pill; ctx.fillRect(bx, by + 10, bw * P.triple / TRIPLE_TIME, 2.5);
   }
-  for (let i = 0; i < P.lives; i++){
-    ctx.save(); ctx.translate(W - 14 - i * 16, 24); ctx.scale(.5, .5);
-    poly(SHIP, 0, 0, 0, COL.hull, 'rgba(10,40,60,.85)', 2.5); ctx.restore();
-  }
-  // Waffe und Credits
-  const y0 = BOTTOM + 13;
-  text('SALVE', 8, y0, 6, COL.dim, 'left');
-  text(LNAME[shotLvl()], 8, y0 + 13, 8, COL.hull, 'left');
+  // unten: Leben, Salve, Münzen (rechts bleibt Platz für den Ton-Knopf)
+  const y1 = BOTTOM + 13, y2 = BOTTOM + 30;
+  for (let i = 0; i < P.lives; i++) drawLife(16 + i * 20, y1);
   for (let i = 1; i <= MAXLVL; i++){
-    const x = 104 + (i - 1) * 13, on = i <= P.lvl;
-    ctx.fillStyle = on ? COL.hull : '#221d52';
-    if (on){ ctx.shadowColor = COL.hull; ctx.shadowBlur = 6; }
-    ctx.fillRect(x, y0 + 6, 9, 9); ctx.shadowBlur = 0;
+    ctx.fillStyle = i <= P.lvl ? PAL.shipTip : '#24243a';
+    ctx.fillRect(104 + (i - 1) * 12, y1 - 4, 8, 8);
   }
-  drawCredit(186, y0 + 10, 0, 6);
-  text(String(P.credits), 196, y0 + 11, 8, COL.credit, 'left');
-  // Fortschritt bis zur nächsten Stufe (Platz rechts lässt der Ton-Knopf frei)
-  const bx = 104, by = y0 - 4, bw = 132;
-  ctx.fillStyle = '#221d52'; ctx.fillRect(bx, by, bw, 4);
-  if (P.lvl < MAXLVL){ ctx.fillStyle = COL.credit; ctx.fillRect(bx, by, bw * P.meter / NEED[P.lvl], 4); }
-  else { ctx.fillStyle = COL.hull; ctx.fillRect(bx, by, bw, 4); }
+  drawCredit(172, y1, 0, 5.5);
+  text('MÜNZEN ' + P.credits, 182, y1 + 1, 6.5, '#d8d6e4', 'left');
+  text('SALVE ' + LNAME[shotLvl()], 10, y2, 5.5, PAL.label, 'left');
+  const bx = 104, bw = 160;
+  ctx.fillStyle = '#24243a'; ctx.fillRect(bx, y2 - 1.5, bw, 3);
+  if (P.lvl < MAXLVL){ ctx.fillStyle = PAL.coin; ctx.fillRect(bx, y2 - 1.5, bw * P.meter / NEED[P.lvl], 3); }
+  else { ctx.fillStyle = PAL.shipTip; ctx.fillRect(bx, y2 - 1.5, bw, 3); }
 }
 
 function draw(now){
   const t = now / 1000;
   ctx.save();
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(background(), 0, 0, W, H);
   if (shake > 0 && !REDUCED) ctx.translate(rnd(-1, 1) * shake * 10, rnd(-1, 1) * shake * 10);
 
   for (const s of stars){
-    ctx.fillStyle = s.z === 3 ? '#ffffff' : s.z === 2 ? '#8f88d8' : '#3f3a7a';
-    ctx.fillRect(s.x | 0, s.y | 0, s.z === 3 ? 2 : 1, s.z === 3 ? 2 + (state === 'play' ? 2 : 0) : 1);
+    ctx.fillStyle = s.z === 3 ? '#ffffff' : s.z === 2 ? '#8a92c8' : '#3a3f66';
+    ctx.fillRect(s.x | 0, s.y | 0, s.z === 3 ? 2 : 1.5, s.z === 3 ? 2 : 1.5);
   }
 
   if (state === 'title'){ drawTitle(t); ctx.restore(); return; }
 
-  for (const it of items) it.kind === 'triple' ? drawCapsule(it.x, it.y, it.t) : drawCredit(it.x, it.y, it.spin, 7);
+  for (const it of items) it.kind === 'triple' ? drawCapsule(it.x, it.y, it.t) : drawCredit(it.x, it.y, it.spin, 6);
   for (const e of enemies) drawEnemy(e);
 
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = COL.credit; ctx.lineWidth = 2; ctx.shadowColor = COL.credit; ctx.shadowBlur = 6;
-  ctx.beginPath();
-  for (const b of pb){ const k = 0.018; ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * k, b.y - b.vy * k); }
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  // eigene Schüsse: weißer Strich mit blauem Schweif
+  ctx.lineCap = 'butt';
+  for (const b of pb){
+    const k = .011;
+    ctx.strokeStyle = '#2f5fc8'; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(b.x - b.vx * k, b.y - b.vy * k); ctx.lineTo(b.x - b.vx * k * 1.8, b.y - b.vy * k * 1.8); ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * k, b.y - b.vy * k); ctx.stroke();
+  }
+  // Explosionen: oranger Ring
+  for (let i = rings.length - 1; i >= 0; i--){
+    const g = rings[i], a = (time - g.born) / .35;
+    if (a >= 1 || a < 0){ rings.splice(i, 1); continue; }
+    ctx.globalAlpha = 1 - a;
+    ctx.strokeStyle = PAL.lamp; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(g.x, g.y, 4 + (g.r + 8) * a, 0, Math.PI * 2); ctx.stroke();
+    if (a < .5){ ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(g.x, g.y, 4 * (1 - a * 2), 0, Math.PI * 2); ctx.fill(); }
+  }
+  // Funken als kleine Quadrate
   for (const p of parts){
-    const a = Math.max(0, p.life / p.max);
-    ctx.globalAlpha = a; ctx.strokeStyle = p.color; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * .04, p.y - p.vy * .04); ctx.stroke();
+    ctx.globalAlpha = Math.max(0, p.life / p.max);
+    ctx.fillStyle = p.color; ctx.fillRect(p.x - 1.2, p.y - 1.2, 2.4, 2.4);
   }
   ctx.globalAlpha = 1;
   for (const b of eb){
-    ctx.fillStyle = COL.hostile; ctx.shadowColor = COL.hostile; ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 1, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(b.x, b.y, 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = PAL.ebullet; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = PAL.ebulletCore; ctx.beginPath(); ctx.arc(b.x - .8, b.y - .8, 1.4, 0, Math.PI * 2); ctx.fill();
   }
-  ctx.restore();
 
   if (state !== 'over' && (P.inv <= 0 || ((t * 12) | 0) % 2 === 0)) drawShip(P.x, P.y, P.tilt, t);
 
@@ -859,9 +946,8 @@ function draw(now){
   ctx.globalAlpha = 1;
 
   if (banner && state === 'play'){
-    const a = Math.min(1, banner.t * 2);
-    ctx.globalAlpha = a;
-    text(banner.text, W / 2, 230, 14, COL.hull, 'center', 12);
+    ctx.globalAlpha = Math.min(1, banner.t * 2);
+    text(banner.text, W / 2, 230, 14, '#ffffff', 'center');
     text(banner.sub, W / 2, 256, 7, COL.ink, 'center');
     ctx.globalAlpha = 1;
   }
@@ -870,62 +956,62 @@ function draw(now){
   drawHUD();
 
   if (state === 'pause'){
-    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, TOP + 1, W, BOTTOM - TOP - 1);
-    text('PAUSE', W / 2, 280, 18, COL.hull, 'center', 14);
+    ctx.fillStyle = 'rgba(4,4,10,.7)'; ctx.fillRect(0, TOP + 1, W, BOTTOM - TOP - 1);
+    text('PAUSE', W / 2, 280, 18, '#ffffff', 'center');
     text('P ODER TIPPEN: WEITER', W / 2, 320, 7, COL.ink);
   }
   if (state === 'over'){
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, TOP + 1, W, BOTTOM - TOP - 1);
-    text(timeUp ? 'ZEIT' : 'SPIEL', W / 2, 200, 24, timeUp ? COL.credit : COL.hostile, 'center', 16);
-    text(timeUp ? 'UM' : 'VORBEI', W / 2, 236, 24, timeUp ? COL.credit : COL.hostile, 'center', 16);
-    text('PUNKTE  ' + P.score, W / 2, 292, 9, COL.ink);
-    text('SEKTOR ' + sector + '   ABSCHÜSSE ' + kills, W / 2, 316, 7, COL.dim);
-    text('CREDITS ' + P.credits, W / 2, 336, 7, COL.credit);
-    if (newRecord) text('NEUER REKORD!', W / 2, 372, 10, COL.credit, 'center', 10);
-    if (REWARD){ text('GUT GESPIELT!', W / 2, 430, 9, COL.hull); text('WEITER LERNEN FÜR DAS NÄCHSTE SPIEL', W / 2, 452, 6, COL.ink); }
+    ctx.fillStyle = 'rgba(4,4,10,.7)'; ctx.fillRect(0, TOP + 1, W, BOTTOM - TOP - 1);
+    text(timeUp ? 'ZEIT' : 'SPIEL', W / 2, 200, 24, timeUp ? COL.credit : COL.hostile, 'center');
+    text(timeUp ? 'UM' : 'VORBEI', W / 2, 236, 24, timeUp ? COL.credit : COL.hostile, 'center');
+    text('PUNKTE  ' + P.score, W / 2, 292, 9, PAL.value);
+    text('WELLE ' + sector + '   ABSCHÜSSE ' + kills, W / 2, 316, 7, PAL.label);
+    text('MÜNZEN ' + P.credits, W / 2, 336, 7, PAL.coin);
+    if (newRecord) text('NEUER REKORD!', W / 2, 372, 10, COL.credit, 'center');
+    if (REWARD){ text('GUT GESPIELT!', W / 2, 430, 9, COL.green); text('WEITER LERNEN FÜR DAS NÄCHSTE SPIEL', W / 2, 452, 6, COL.ink); }
     else {
-      if (overT > 1 && ((t * 2) | 0) % 2 === 0) text('LEERTASTE / TIPPEN', W / 2, 430, 8, COL.hull);
-      if (overT > 1) text('FÜR NEUSTART', W / 2, 448, 8, COL.hull);
+      if (overT > 1 && ((t * 2) | 0) % 2 === 0) text('LEERTASTE / TIPPEN', W / 2, 430, 8, '#ffffff');
+      if (overT > 1) text('FÜR NEUSTART', W / 2, 448, 8, '#ffffff');
     }
   }
 }
 
 function drawTitle(t){
-  text('STERN', W / 2, 92, 30, COL.hull, 'center', 18);
-  text('SPLITTER', W / 2, 132, 30, COL.hostile, 'center', 18);
-  text(REWARD ? 'DEINE BELOHNUNG' : 'EIN VEKTOR-SHOOTER', W / 2, 166, 7, REWARD ? COL.credit : COL.dim);
+  text('STERN', W / 2, 92, 30, '#ffffff', 'center');
+  text('SPLITTER', W / 2, 132, 30, COL.hostile, 'center');
+  text(REWARD ? 'DEINE BELOHNUNG' : 'EIN WELTRAUM-SHOOTER', W / 2, 166, 7, REWARD ? COL.credit : PAL.label);
 
   drawShip(W / 2, 220 + Math.sin(t * 2) * 5, Math.sin(t * 1.3) * .6, t);
 
-  // Waffenstufen zeigen, was Credits bewirken
-  drawCredit(56, 278, t * 3, 7);
-  text('CREDITS SAMMELN', 72, 272, 7, COL.credit, 'left');
+  // was Münzen bewirken
+  drawCredit(56, 279, t * 3, 7);
+  text('MÜNZEN SAMMELN', 72, 272, 7, PAL.coin, 'left');
   text('= BREITERE SALVE', 72, 286, 7, COL.ink, 'left');
   const lv = 1 + ((t / 1.1) | 0) % MAXLVL;
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = COL.credit; ctx.lineWidth = 2; ctx.shadowColor = COL.credit; ctx.shadowBlur = 6;
+  ctx.lineCap = 'butt'; ctx.lineWidth = 2.2; ctx.strokeStyle = '#ffffff';
   ctx.beginPath();
-  for (const [ox, a] of PAT[lv]){ const x = 290 + ox, y = 300; ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(a) * 34, y - Math.cos(a) * 34); }
-  ctx.stroke(); ctx.restore();
-  text(LNAME[lv], 290, 310, 6, COL.hull);
+  for (const [ox, a] of PAT[lv]){ const x = 290 + ox, y = 300; ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(a) * 30, y - Math.cos(a) * 30); }
+  ctx.stroke();
+  text(LNAME[lv], 290, 312, 6, PAL.shipTip);
 
   // Gegner
   const y = 352;
-  poly(rockShape.cache || (rockShape.cache = rockShape(11)), 50, y, t * .6, COL.violet, 'rgba(30,20,60,.8)');
-  poly(DART, 110, y, 0, COL.hostile, 'rgba(60,10,40,.8)');
-  poly(HUNTER, 170, y, t * 3, COL.red, 'rgba(60,10,20,.8)');
-  poly(SAUCER, 235, y, 0, COL.warn, 'rgba(60,25,10,.85)');
-  poly(STAR, 305, y, t * .8, COL.hostile, 'rgba(50,10,45,.85)');
+  poly(rockShape.cache || (rockShape.cache = rockShape(11)), 40, y, t * .6, PAL.rockRim, PAL.rock);
+  drawFighter(95, y, 0, PAL.fighter, PAL.fighterWing, PAL.fighterCore, .85);
+  drawFighter(148, y, 0, PAL.hunter, PAL.hunterWing, PAL.fighterCore, .85);
+  drawAlien(204, y, t, {wing: PAL.alienWing, body: PAL.alien, eye: PAL.eye}, 1.1);
+  drawMother(285, y, t, null, false, .85);
   text('AUSWEICHEN! MANCHE SCHIESSEN ZURÜCK', W / 2, y + 36, 6, COL.ink);
-  text('BERÜHRUNG KOSTET EIN LEBEN', W / 2, y + 50, 6, COL.dim);
+  text('BERÜHRUNG KOSTET EIN LEBEN', W / 2, y + 50, 6, PAL.label);
   drawCapsule(70, y + 74, t);
-  text('KAPSEL = ' + TRIPLE_TIME + ' S SALVE +1', 94, y + 75, 6, COL.hull, 'left');
+  text('KAPSEL = ' + TRIPLE_TIME + ' S SALVE +1', 94, y + 75, 6, '#ddd6ff', 'left');
 
   const cy = 458;
-  const rows = [['FLIEGEN', 'PFEILE / WASD'], ['FEUER', 'LEERTASTE'], ['HANDY', 'ZIEHEN + AUTOFEUER'], ['PAUSE / TON', 'P / M']];
-  rows.forEach((r, i) => { text(r[0], 40, cy + i * 18, 7, COL.dim, 'left'); text(r[1], 320, cy + i * 18, 7, COL.ink, 'right'); });
+  const rows = [['FLIEGEN', 'PFEILE / WASD'], ['FEUER', 'LEERTASTE'], ['HANDY', 'FINGER ZIEHEN · AUTO-FEUER'], ['PAUSE / TON', 'P / M']];
+  rows.forEach((r, i) => { text(r[0], 30, cy + i * 18, 6.5, PAL.label, 'left'); text(r[1], 330, cy + i * 18, 6.5, COL.ink, 'right'); });
 
-  text('REKORD ' + String(hi).padStart(7, '0'), W / 2, 540, 8, COL.credit);
-  if (((t * 2) | 0) % 2 === 0) text('LEERTASTE ODER TIPPEN', W / 2, 580, 8, COL.hull, 'center', 8);
+  text('REKORD ' + String(hi).padStart(6, '0'), W / 2, 540, 8, COL.credit);
+  if (((t * 2) | 0) % 2 === 0) text('LEERTASTE ODER TIPPEN', W / 2, 580, 8, '#ffffff', 'center');
 }
 
 let last = performance.now();

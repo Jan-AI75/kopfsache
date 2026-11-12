@@ -1,7 +1,7 @@
 // Offline-Speicher für Kopfsache.
 // App-Dateien: erst aus dem Netz (damit Updates sofort ankommen), ohne Netz aus dem Speicher.
 // Schriften von Google Fonts: einmal geladen, danach aus dem Speicher.
-const CACHE = 'kopfsache-v1';
+const CACHE = 'kopfsache-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
